@@ -1,1 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Comparador de Algoritmos PRO</title>
+ 
+ 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    text-align: center;
+}
+
+h1 { color: #38bdf8; }
+
+.container {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+
+.chart-box {
+    width: 30%;
+    background: #1e293b;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+button, select {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    background: #0ea5e9;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover { background: #0284c7; }
+</style>
+</head>
+
+<body>
+
+<h1>❄️ Comparador de Algoritmos</h1>
+
+<select id="criterio">
+    <option value="produccion">Producción</option>
+    <option value="entrega">Entrega</option>
+    <option value="prioridad">Prioridad</option>
+</select>
+
+<select id="orden">
+    <option value="asc">Ascendente</option>
+    <option value="desc">Descendente</option>
+</select>
+
+<button onclick="iniciar()">▶ Iniciar</button>
+
+<div class="container">
+    <div class="chart-box">
+        <h3>🔵 Bubble</h3>
+        <canvas id="bubble"></canvas>
+        <p id="bInfo"></p>
+    </div>
+
+    <div class="chart-box">
+        <h3>🟣 Selection</h3>
+        <canvas id="selection"></canvas>
+        <p id="sInfo"></p>
+    </div>
+
+    <div class="chart-box">
+        <h3>🟢 Insertion</h3>
+        <canvas id="insertion"></canvas>
+        <p id="iInfo"></p>
+    </div>
+</div>
+
+<script>
+// ===== DATOS =====
+let dataOriginal = [];
+let charts = {};
+
+// ===== GENERAR DATOS =====
+function generarDatos() {
+    dataOriginal = [];
+    for (let i = 0; i < 12; i++) {
+        dataOriginal.push({
+            produccion: Math.floor(Math.random() * 200 + 50),
+            entrega: Math.floor(Math.random() * 300 + 50),
+            prioridad: Math.floor(Math.random() * 5 + 1)
+        });
+    }
+}
+
+// ===== VALOR =====
+function getValor(obj, criterio) {
+    return obj[criterio];
+}
+
+// ===== CREAR GRAFICO =====
+function crearGrafico(id, arr, criterio) {
+    const ctx = document.getElementById(id).getContext("2d");
+
+    return new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: arr.map((_, i) => i),
+            datasets: [{
+                data: arr.map(o => getValor(o, criterio)),
+                backgroundColor: Array(arr.length).fill("#38bdf8")
+            }]
+        },
+        options: { animation: false }
+    });
+}
+
+// ===== ACTUALIZAR =====
+function actualizar(chart, arr, colores, criterio) {
+    chart.data.datasets[0].data = arr.map(o => getValor(o, criterio));
+    chart.data.datasets[0].backgroundColor = colores;
+    chart.update();
+}
+
+// ===== COMPARADOR =====
+function comparar(a, b, asc) {
+    return asc ? a > b : a < b;
+}
+
+// ===== SLEEP =====
+function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+}
+
+// ===== BUBBLE =====
+async function bubble(arr, chart, criterio, asc) {
+    let ops = 0;
+
+    for (let i = 0; i < arr.length; i++) {
+        for (let j = 0; j < arr.length - i - 1; j++) {
+
+            let colores = Array(arr.length).fill("#38bdf8");
+            colores[j] = "#ef4444";
+
+            actualizar(chart, arr, colores, criterio);
+            await sleep(120);
+
+            let v1 = getValor(arr[j], criterio);
+            let v2 = getValor(arr[j+1], criterio);
+
+            ops++;
+
+            if (comparar(v1, v2, asc)) {
+                [arr[j], arr[j+1]] = [arr[j+1], arr[j]];
+            }
+        }
+    }
+
+    document.getElementById("bInfo").innerText = Operaciones: ${ops};
+}
+
+// ===== SELECTION =====
+async function selection(arr, chart, criterio, asc) {
+    let ops = 0;
+
+    for (let i = 0; i < arr.length; i++) {
+        let idx = i;
+
+        for (let j = i + 1; j < arr.length; j++) {
+
+            let colores = Array(arr.length).fill("#38bdf8");
+            colores[j] = "#a855f7";
+
+            actualizar(chart, arr, colores, criterio);
+            await sleep(120);
+
+            let v1 = getValor(arr[j], criterio);
+            let v2 = getValor(arr[idx], criterio);
+
+            ops++;
+
+            if (comparar(v1, v2, asc)) {
+                idx = j;
+            }
+        }
+
+        [arr[i], arr[idx]] = [arr[idx], arr[i]];
+    }
+
+    document.getElementById("sInfo").innerText = Operaciones: ${ops};
+}
+
+// ===== INSERTION =====
+async function insertion(arr, chart, criterio, asc) {
+    let ops = 0;
+
+    for (let i = 1; i < arr.length; i++) {
+        let key = arr[i];
+        let j = i - 1;
+
+        while (j >= 0 && comparar(getValor(arr[j], criterio), getValor(key, criterio), asc)) {
+
+            let colores = Array(arr.length).fill("#38bdf8");
+            colores[j] = "#22c55e";
+
+            arr[j+1] = arr[j];
+
+            actualizar(chart, arr, colores, criterio);
+            await sleep(120);
+
+            j--;
+            ops++;
+        }
+
+        arr[j+1] = key;
+    }
+
+    document.getElementById("iInfo").innerText = Operaciones: ${ops};
+}
+
+// ===== INICIAR =====
+async function iniciar() {
+
+    // eliminar gráficos anteriores
+    if (charts.b) charts.b.destroy();
+    if (charts.s) charts.s.destroy();
+    if (charts.i) charts.i.destroy();
+
+    generarDatos();
+
+    let criterio = document.getElementById("criterio").value;
+    let asc = document.getElementById("orden").value === "asc";
+
+    let b = structuredClone(dataOriginal);
+    let s = structuredClone(dataOriginal);
+    let i = structuredClone(dataOriginal);
+
+    charts.b = crearGrafico("bubble", b, criterio);
+    charts.s = crearGrafico("selection", s, criterio);
+    charts.i = crearGrafico("insertion", i, criterio);
+
+    bubble(b, charts.b, criterio, asc);
+    selection(s, charts.s, criterio, asc);
+    insertion(i, charts.i, criterio, asc);
+}
+</script>
+
+</body>
+</html>
+}
